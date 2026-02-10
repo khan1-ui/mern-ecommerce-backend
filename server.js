@@ -17,26 +17,31 @@ connectDB();
 
 const app = express();
 console.log("🔥 THIS FILE IS RUNNING 🔥");
-app.use((req, res, next) => {
-  res.header(
-    "Access-Control-Allow-Origin",
-    "https://mern-e-sell.netlify.app"
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
+const allowedOrigins = [
+  "http://localhost:5173", // local frontend
+  "https://mern-e-sell.netlify.app/"
+  
+];
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow non-browser requests (Postman, server-to-server)
+      if (!origin) return callback(null, true);
 
-  next();
-});
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: false,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+
 
 
 
