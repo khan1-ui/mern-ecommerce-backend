@@ -24,8 +24,8 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // allow server-to-server / postman
+    origin: (origin, callback) => {
+      // allow requests with no origin (Postman, curl)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -33,13 +33,21 @@ app.use(
       }
 
       return callback(
-        new Error("Not allowed by CORS")
+        new Error(`CORS blocked for origin: ${origin}`)
       );
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
   })
 );
+
+// 🔥 THIS LINE IS CRITICAL
 app.options("*", cors());
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
