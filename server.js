@@ -41,6 +41,7 @@ app.use(
   })
 );
 
+app.options("*", cors());
 
 
 
