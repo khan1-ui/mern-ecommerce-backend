@@ -19,26 +19,28 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.CLIENT_URL,
+  "https://mern-e-sell.netlify.app",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow non-browser requests (Postman, server-to-server)
+      // allow server-to-server / postman
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(
-          new Error("Not allowed by CORS")
-        );
+        return callback(null, true);
       }
+
+      return callback(
+        new Error("Not allowed by CORS")
+      );
     },
     credentials: true,
   })
 );
+app.options("*", cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
