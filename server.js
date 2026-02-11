@@ -15,14 +15,12 @@ dotenv.config();
 connectDB();
 
 const app = express();
-console.log("🔥 VERSION 2 MANUAL CORS 🔥");
-
+console.log("🔥 EXPRESS 4 RUNNING 🔥");
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "https://mern-sell.netlify.app");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
@@ -30,9 +28,6 @@ app.use((req, res, next) => {
 
   next();
 });
-
-
-
 
 
 
