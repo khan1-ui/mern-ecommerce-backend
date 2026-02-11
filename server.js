@@ -17,20 +17,20 @@ connectDB();
 
 const app = express();
 console.log("🔥 THIS FILE IS RUNNING 🔥");
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://mern-sell.netlify.app"
-];
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: [
+    "http://localhost:5173",
+    "https://mern-sell.netlify.app"
+  ],
   credentials: true
 }));
-
-// Explicitly handle preflight
-app.options("*", cors());
 
 
 
