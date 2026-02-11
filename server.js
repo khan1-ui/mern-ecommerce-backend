@@ -12,6 +12,7 @@ import orderRoutes from "./routes/order.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import downloadRoutes from "./routes/download.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
+import storeRoutes from "./routes/store.routes.js";
 
 // ------------------ CONFIG ------------------
 dotenv.config();
@@ -67,7 +68,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/download", downloadRoutes);
 app.use("/api", invoiceRoutes);
-
+app.use("/api/store", storeRoutes);
 // ------------------ ROOT ------------------
 app.get("/", (req, res) => {
   res.send("🚀 API is running...");

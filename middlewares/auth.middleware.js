@@ -1,18 +1,23 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-const protect = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+export const protect = async (req, res, next) => {
+  let token;
 
-  if (!token) return res.status(401).json({ message: "Not authorized" });
+  if (req.headers.authorization?.startsWith("Bearer")) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
-    next();
-  } catch {
-    res.status(401).json({ message: "Token failed" });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // 🔥 store populate করা গুরুত্বপূর্ণ
+      req.user = await User.findById(decoded.id).populate("store");
+
+      next();
+    } catch (error) {
+      res.status(401).json({ message: "Not authorized" });
+    }
+  } else {
+    res.status(401).json({ message: "No token" });
   }
 };
-
-export default protect;

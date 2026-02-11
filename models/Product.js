@@ -11,6 +11,11 @@ const productSchema = new mongoose.Schema(
     digitalFile: String,
     stock: Number,
     isPublished: { type: Boolean, default: true },
+    store: {type: mongoose.Schema.Types.ObjectId,
+        ref: "Store",
+        required: true,
+      },
+
   },
   { timestamps: true }
 );
