@@ -19,7 +19,6 @@ console.log("🔥 EXPRESS 4 RUNNING 🔥");
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://mern-sell.netlify.app",
   "https://mern-ecommerce-sell.netlify.app"
 ];
 
