@@ -17,13 +17,6 @@ connectDB();
 
 const app = express();
 console.log("🔥 THIS FILE IS RUNNING 🔥");
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-  next();
-});
-
 app.use(cors({
   origin: [
     "http://localhost:5173",
@@ -31,6 +24,7 @@ app.use(cors({
   ],
   credentials: true
 }));
+
 
 
 
