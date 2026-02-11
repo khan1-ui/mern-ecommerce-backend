@@ -4,13 +4,19 @@ import Order from "../models/Order.js";
 
 // ================= USERS =================
 export const getAllUsers = async (req, res) => {
-  // 🔥 Only users of this store
+  if (!req.user?.store) {
+    return res.status(403).json({
+      message: "No store assigned",
+    });
+  }
+
   const users = await User.find({
     store: req.user.store._id,
   }).select("-password");
 
   res.json(users);
 };
+
 
 // ================= ADMIN STATS =================
 export const getAdminStats = async (req, res) => {

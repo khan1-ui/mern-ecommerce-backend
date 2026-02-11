@@ -95,22 +95,36 @@ export const createProduct = async (req, res) => {
       stock,
     } = req.body || {};
 
+    // 🔒 Must have store
+    if (!req.user?.store) {
+      return res.status(403).json({
+        message: "You do not own a store",
+      });
+    }
+
     if (!title || !price || !type) {
       return res.status(400).json({
         message: "Required fields missing",
       });
     }
 
-    // base slug
-    let slug = slugify(title, { lower: true });
+    // 🧠 Generate base slug
+    let baseSlug = slugify(title, { lower: true, strict: true });
 
-    // check duplicate slug
-    const existingProduct = await Product.findOne({ slug });
+    // 🔥 Slug uniqueness inside same store only
+    let slug = baseSlug;
+    let counter = 1;
 
-    if (existingProduct) {
-      slug = `${slug}-${Date.now()}`; // make unique
+    while (
+      await Product.findOne({
+        slug,
+        store: req.user.store._id,
+      })
+    ) {
+      slug = `${baseSlug}-${counter++}`;
     }
 
+    // 🖼 Handle images
     const images = req.files?.length
       ? req.files.map((f) => `/uploads/images/${f.filename}`)
       : [];
@@ -123,16 +137,23 @@ export const createProduct = async (req, res) => {
       type,
       images,
       stock: type === "physical" ? Number(stock || 0) : null,
+
+      // 🔥 SaaS isolation
+      store: req.user.store._id,
     });
 
     const created = await product.save();
+
     res.status(201).json(created);
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("CREATE PRODUCT ERROR:", error);
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
+
 
 
 

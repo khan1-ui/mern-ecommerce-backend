@@ -10,7 +10,7 @@ const generateSlug = (text) =>
     .replace(/[^a-z0-9]+/g, "-");
 
 // ================= REGISTER =================
-export const register = async (req, res) => {
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password, storeName } = req.body;
 
