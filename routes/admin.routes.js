@@ -1,4 +1,6 @@
 import express from "express";
+import multer from "multer";
+import Product from "../models/Product.js";
 import protect from "../middlewares/auth.middleware.js";
 import admin from "../middlewares/admin.middleware.js";
 import {
@@ -58,4 +60,26 @@ router.put("/orders/:id/status", protect, admin,updateOrderStatus);
 router.get("/orders",protect,admin,getAllOrdersAdmin);
 
 
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.post("/import-products", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const jsonData = JSON.parse(req.file.buffer.toString());
+
+    if (!Array.isArray(jsonData)) {
+      return res.status(400).json({ message: "Invalid JSON format" });
+    }
+
+    await Product.insertMany(jsonData);
+
+    res.json({ message: "Products imported successfully!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+});
 export default router;
