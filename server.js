@@ -19,7 +19,7 @@ const app = express();
 console.log("🔥 THIS FILE IS RUNNING 🔥");
 const allowedOrigins = [
   "http://localhost:5173", // local frontend
-  "https://mern-e-sell.netlify.app/"
+  "https://mern-sell.netlify.app"
   
 ];
 
