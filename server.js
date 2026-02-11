@@ -17,30 +17,13 @@ connectDB();
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173", // local frontend
-  "https://mern-sell.netlify.app"
-  
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow non-browser requests (Postman, server-to-server)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: false,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://mern-sell.netlify.app"
+  ],
+  credentials: true
+}));
 
 
 
