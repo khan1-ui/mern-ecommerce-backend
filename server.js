@@ -17,8 +17,19 @@ connectDB();
 const app = express();
 console.log("🔥 EXPRESS 4 RUNNING 🔥");
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://mern-sell.netlify.app",
+  "https://mern-ecommerce-sell.netlify.app"
+];
+
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://mern-ecommerce-sell.netlify.app");
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
