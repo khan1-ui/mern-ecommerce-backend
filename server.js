@@ -15,6 +15,8 @@ dotenv.config();
 connectDB();
 
 const app = express();
+console.log("🔥 VERSION 2 MANUAL CORS 🔥");
+
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "https://mern-sell.netlify.app");
