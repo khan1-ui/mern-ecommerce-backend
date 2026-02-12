@@ -6,24 +6,50 @@ import { generateInvoiceNumber } from "../utils/invoice.util.js";
 
 export const downloadInvoice = async (req, res) => {
   try {
-    // 1️⃣ Fetch order
     const order = await Order.findById(req.params.orderId)
       .populate("user")
+      .populate("store")
       .populate("items.product");
 
     if (!order) {
-      return res
-        .status(404)
-        .json({ message: "Order not found" });
+      return res.status(404).json({
+        message: "Order not found",
+      });
     }
 
-    // 2️⃣ Generate invoice number once
+    // 🔐 Ownership / Role Check
+    const isOwner =
+      order.user._id.toString() ===
+      req.user._id.toString();
+
+    const isStoreOwner =
+      req.user.store &&
+      order.store._id.toString() ===
+        req.user.store._id.toString();
+
+    const isSuperAdmin =
+      req.user.role === "superadmin";
+
+    if (!isOwner && !isStoreOwner && !isSuperAdmin) {
+      return res.status(403).json({
+        message: "Not authorized to view this invoice",
+      });
+    }
+
+    // 🔒 Prevent invoice for unpaid order
+    if (order.paymentStatus !== "paid") {
+      return res.status(400).json({
+        message: "Invoice available only for paid orders",
+      });
+    }
+
+    // 🔢 Generate invoice number if missing
     if (!order.invoiceNumber) {
-      order.invoiceNumber = generateInvoiceNumber(order._id);
+      order.invoiceNumber =
+        generateInvoiceNumber(order._id);
       await order.save();
     }
 
-    // 3️⃣ Setup PDF
     const doc = new PDFDocument({
       size: "A4",
       margin: 50,
@@ -37,26 +63,10 @@ export const downloadInvoice = async (req, res) => {
 
     doc.pipe(res);
 
-    /* ================= LOGO ================= */
-    const logoPath = path.join(
-      process.cwd(),
-      "assets",
-      "logo.png"
-    );
-
-    if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, {
-        width: 90,
-        align: "left",
-      });
-    }
-
     /* ================= HEADER ================= */
     doc
       .fontSize(22)
-      .text("INVOICE", {
-        align: "right",
-      });
+      .text("INVOICE", { align: "right" });
 
     doc.moveDown(1);
 
@@ -69,6 +79,12 @@ export const downloadInvoice = async (req, res) => {
 
     doc.moveDown();
 
+    /* ================= STORE INFO ================= */
+    doc.fontSize(12).text("Store:");
+    doc.fontSize(11).text(order.store.name);
+
+    doc.moveDown();
+
     /* ================= BILL TO ================= */
     if (order.shippingAddress) {
       doc.fontSize(12).text("Bill To:");
@@ -76,7 +92,8 @@ export const downloadInvoice = async (req, res) => {
         .fontSize(11)
         .text(order.shippingAddress.name || "")
         .text(order.shippingAddress.phone || "")
-        .text(order.shippingAddress.address || "");
+        .text(order.shippingAddress.address || "")
+        .text(order.shippingAddress.city || "");
 
       doc.moveDown();
     }
@@ -85,43 +102,17 @@ export const downloadInvoice = async (req, res) => {
     doc.fontSize(12).text("Items");
     doc.moveDown(0.5);
 
-    // table header
-    doc.fontSize(11);
-    doc.text("Product", 50, doc.y, {
-      continued: true,
-    });
-    doc.text("Qty", 300, doc.y, {
-      continued: true,
-    });
-    doc.text("Price", 360, doc.y, {
-      align: "right",
-    });
-
-    doc.moveDown(0.5);
-    doc
-      .strokeColor("#cccccc")
-      .lineWidth(1)
-      .moveTo(50, doc.y)
-      .lineTo(545, doc.y)
-      .stroke();
-
-    doc.moveDown(0.5);
-
     order.items.forEach((item) => {
       const title =
-        item.product?.title || "Product";
-      const qty = item.qty || 1;
+        item.product?.title || item.name;
+      const qty = item.quantity || 1;
       const price = item.price || 0;
 
-      doc.text(title, 50, doc.y, {
-        continued: true,
-      });
-      doc.text(`${qty}`, 300, doc.y, {
-        continued: true,
-      });
-      doc.text(`Tk ${price}`, 360, doc.y, {
-        align: "right",
-      });
+      doc
+        .fontSize(11)
+        .text(
+          `${title} | Qty: ${qty} | Tk ${price}`
+        );
 
       doc.moveDown(0.5);
     });
@@ -138,28 +129,7 @@ export const downloadInvoice = async (req, res) => {
 
     doc.moveDown();
 
-    /* ================= PAYMENT ================= */
-    doc.fontSize(11);
-    doc.text("Payment Method: Cash on Delivery");
-    doc.text(
-      `Payment Status: ${
-        order.paymentStatus === "paid"
-          ? "Paid"
-          : "Pay on Delivery"
-      }`
-    );
-
     /* ================= FOOTER ================= */
-    doc.moveDown(2);
-    doc
-      .strokeColor("#dddddd")
-      .lineWidth(1)
-      .moveTo(50, doc.y)
-      .lineTo(545, doc.y)
-      .stroke();
-
-    doc.moveDown(1);
-
     doc
       .fontSize(10)
       .fillColor("gray")
@@ -168,21 +138,8 @@ export const downloadInvoice = async (req, res) => {
         { align: "center" }
       );
 
-    doc.moveDown(0.3);
-
-    doc.text(
-      "This is a system generated invoice. No signature required.",
-      { align: "center" }
-    );
-
-    doc.moveDown(0.3);
-
-    doc.text(
-      "For any queries, contact: support@yourshop.com",
-      { align: "center" }
-    );
-
     doc.end();
+
   } catch (error) {
     console.error("Invoice error:", error);
     res.status(500).json({

@@ -1,17 +1,21 @@
 import express from "express";
 import {
-  getProducts,
+  getProductsByStore,
   getProductBySlug,
-  getProductStats, 
-  
 } from "../controllers/product.controller.js";
 
 const router = express.Router();
 
-// Public routes
-router.get("/", getProducts);
-router.get("/stats", getProductStats);   
-router.get("/:slug", getProductBySlug);
+// 🔥 Get products by store
+router.get(
+  "/store/:storeId/products",
+  getProductsByStore
+);
 
+// 🔥 Get single product by slug inside store
+router.get(
+  "/store/:storeId/products/:slug",
+  getProductBySlug
+);
 
 export default router;

@@ -6,34 +6,40 @@ import cors from "cors";
 
 import connectDB from "./config/db.js";
 
+// ------------------ ROUTES ------------------
+import superAdminRoutes from "./routes/superadmin.routes.js";
+import storeOwnerRoutes from "./routes/storeOwner.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import orderRoutes from "./routes/order.routes.js";
-import adminRoutes from "./routes/admin.routes.js";
 import downloadRoutes from "./routes/download.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
 import storeRoutes from "./routes/store.routes.js";
-
 // ------------------ CONFIG ------------------
 dotenv.config();
-connectDB();
 
 const app = express();
+app.disable("x-powered-by");
 const __dirname = path.resolve();
 
-console.log("🔥 EXPRESS RUNNING 🔥");
+console.log("🚀 Starting Server...");
+
+// ------------------ DATABASE ------------------
+connectDB().catch((err) => {
+  console.error("❌ DB CONNECTION FAILED");
+  process.exit(1);
+});
 
 // ------------------ CORS ------------------
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://mern-sell.netlify.app",
-  "https://mern-ecommerce-sell.netlify.app",
-];
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS ||
+  "http://localhost:5173"
+).split(",");
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman etc.
+      if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -50,7 +56,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ------------------ UPLOAD FOLDER AUTO CREATE ------------------
+// ------------------ UPLOAD FOLDER ------------------
 const uploadPath = path.join(__dirname, "uploads/images");
 
 if (!fs.existsSync(uploadPath)) {
@@ -58,31 +64,61 @@ if (!fs.existsSync(uploadPath)) {
   console.log("📁 Upload folder created");
 }
 
-// Static folder serve
+// ⚠️ NOTE: For production SaaS use Cloudinary / S3 instead
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ------------------ ROUTES ------------------
+// ------------------ API ROUTES ------------------
+
+// 🔐 Authentication
 app.use("/api/auth", authRoutes);
+
+// 👑 Super Admin
+app.use("/api/superadmin", superAdminRoutes);
+
+// 🏪 Store Owner
+app.use("/api/store-owner", storeOwnerRoutes);
+
+// 🛍 Public Products
 app.use("/api/products", productRoutes);
+
+// 📦 Orders
 app.use("/api/orders", orderRoutes);
-app.use("/api/admin", adminRoutes);
+
+// 📄 Downloads & Invoice
 app.use("/api/download", downloadRoutes);
-app.use("/api", invoiceRoutes);
+app.use("/api/invoice", invoiceRoutes);
+
+// 🏬 Public Store Routes
 app.use("/api/store", storeRoutes);
+
+
 // ------------------ ROOT ------------------
 app.get("/", (req, res) => {
-  res.send("🚀 API is running...");
+  res.send("🚀 SaaS API is running...");
+});
+
+// ------------------ 404 HANDLER ------------------
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+  });
 });
 
 // ------------------ GLOBAL ERROR HANDLER ------------------
 app.use((err, req, res, next) => {
   console.error("🔥 SERVER ERROR:", err.message);
-  res.status(500).json({
-    message: err.message || "Server Error",
+
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message:
+      process.env.NODE_ENV === "production"
+        ? "Internal Server Error"
+        : err.message,
   });
 });
 
-// ------------------ SERVER ------------------
+// ------------------ SERVER START ------------------
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

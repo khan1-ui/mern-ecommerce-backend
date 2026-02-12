@@ -8,8 +8,11 @@ import protect from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
+// Public Routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+
+// Protected Route
 router.get("/me", protect, getMe);
 
 export default router;

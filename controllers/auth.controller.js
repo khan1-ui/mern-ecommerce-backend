@@ -1,84 +1,129 @@
 import User from "../models/User.js";
 import Store from "../models/Store.js";
 import generateToken from "../utils/generateToken.js";
-
-// ------------------ SLUG GENERATOR ------------------
-const generateSlug = (text) =>
-  text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-");
+import slugify from "slugify";
+import mongoose from "mongoose";
 
 // ================= REGISTER =================
 export const registerUser = async (req, res) => {
-  try {
-    const { name, email, password, storeName } = req.body;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    if (!name || !email || !password || !storeName) {
+  try {
+    let { name, email, password, role, storeName } = req.body;
+
+    if (!name || !email || !password || !role) {
       return res.status(400).json({
-        message: "All fields including store name are required",
+        message: "All required fields must be filled",
       });
     }
 
-    // 1️⃣ Check existing user
+    email = email.toLowerCase().trim();
+
+    if (role === "superadmin") {
+      return res.status(403).json({
+        message: "Not allowed",
+      });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({
-        message: "User already exists",
+        message: "Email already exists",
       });
     }
 
-    const slug = generateSlug(storeName);
+    // ================= CUSTOMER =================
+    if (role === "customer") {
+      const user = await User.create(
+        [{ name, email, password, role: "customer" }],
+        { session }
+      );
 
-    // 2️⃣ Check store slug uniqueness
-    const storeExists = await Store.findOne({ slug });
-    if (storeExists) {
-      return res.status(400).json({
-        message: "Store name already taken",
+      await session.commitTransaction();
+
+      return res.status(201).json({
+        _id: user[0]._id,
+        name: user[0].name,
+        email: user[0].email,
+        role: user[0].role,
+        token: generateToken(user[0]._id),
       });
     }
 
-    // 3️⃣ Create user
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: "admin",
-    });
+    // ================= STORE OWNER =================
+    if (role === "storeOwner") {
+      if (!storeName) {
+        return res.status(400).json({
+          message: "Store name is required",
+        });
+      }
 
-    // 4️⃣ Create store
-    const store = await Store.create({
-  name: storeName,
-  slug,
-  owner: user._id,
-  logo: "https://via.placeholder.com/150x150?text=Logo",
-  banner: "https://images.unsplash.com/photo-1492724441997-5dc865305da7",
-});
+      const user = await User.create(
+        [{ name, email, password, role: "storeOwner" }],
+        { session }
+      );
 
-    // 5️⃣ Attach store to user
-    user.store = store._id;
-    await user.save();
+      let baseSlug = slugify(storeName, {
+        lower: true,
+        strict: true,
+      });
 
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      store: store.slug,
-      token: generateToken(user._id),
+      let slug = baseSlug;
+      let counter = 1;
+
+      while (await Store.findOne({ slug })) {
+        slug = `${baseSlug}-${counter++}`;
+      }
+
+      const store = await Store.create(
+        [
+          {
+            name: storeName,
+            slug,
+            owner: user[0]._id,
+          },
+        ],
+        { session }
+      );
+
+      user[0].store = store[0]._id;
+      await user[0].save({ session });
+
+      await session.commitTransaction();
+
+      return res.status(201).json({
+        _id: user[0]._id,
+        name: user[0].name,
+        email: user[0].email,
+        role: user[0].role,
+        store: store[0].slug,
+        token: generateToken(user[0]._id),
+      });
+    }
+
+    await session.abortTransaction();
+
+    return res.status(400).json({
+      message: "Invalid role",
     });
 
   } catch (error) {
+    await session.abortTransaction();
+    console.error("REGISTER ERROR:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Registration failed",
     });
+  } finally {
+    session.endSession();
   }
 };
 
 // ================= LOGIN =================
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -86,23 +131,42 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).populate("store");
+    email = email.toLowerCase().trim();
 
-    if (user && (await user.matchPassword(password))) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        store: user.store?.slug, // 🔥 important for SaaS
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(401).json({
+    const user = await User.findOne({ email })
+      .populate("store");
+
+    if (!user) {
+      return res.status(401).json({
         message: "Invalid email or password",
       });
     }
+
+    if (user.status === "suspended") {
+      return res.status(403).json({
+        message: "Account suspended",
+      });
+    }
+
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      store: user.store?.slug || null,
+      token: generateToken(user._id),
+    });
+
   } catch (error) {
+    console.error("LOGIN ERROR:", error);
     res.status(500).json({
       message: "Login failed",
     });
@@ -113,4 +177,3 @@ export const loginUser = async (req, res) => {
 export const getMe = async (req, res) => {
   res.json(req.user);
 };
-
