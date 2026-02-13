@@ -59,11 +59,11 @@ userSchema.methods.matchPassword = async function (entered) {
 };
 
 // 🧠 Prevent storeOwner without store
-userSchema.pre("save", function (next) {
+userSchema.pre("save", function () {
   if (this.role === "storeOwner" && !this.store) {
     console.warn("⚠ StoreOwner without store detected");
   }
-  next();
+  
 });
 
 export default mongoose.model("User", userSchema);
