@@ -11,30 +11,32 @@ import {
 
 const router = express.Router();
 
-/* ================= PUBLIC ================= */
-
-// Get store by slug (public)
-router.get("/:slug", getStoreBySlug);
-
 /* ================= STORE OWNER ================= */
 
-// Update store settings
 router.put(
   "/settings",
   protect,
   authorizeRoles("storeOwner"),
   updateStoreSettings
 );
+
 router.get(
   "/stats",
   protect,
   authorizeRoles("storeOwner"),
   getStoreStats
 );
+
 router.get(
   "/revenue",
   protect,
   authorizeRoles("storeOwner"),
   getStoreRevenue
 );
+
+/* ================= PUBLIC ================= */
+
+// ⚠️ Always keep dynamic route at bottom
+router.get("/:slug", getStoreBySlug);
+
 export default router;
