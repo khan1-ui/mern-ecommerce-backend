@@ -104,6 +104,9 @@ app.use((req, res) => {
     message: "Route not found",
   });
 });
+app.get("/test", (req, res) => {
+  res.send("Server working");
+});
 
 // ------------------ GLOBAL ERROR HANDLER ------------------
 app.use((err, req, res, next) => {

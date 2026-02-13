@@ -60,36 +60,7 @@ export const getStoreStats = async (req, res) => {
     });
   }
 };
-// ================= PUBLIC: GET STORE BY SLUG =================
-export const getStoreBySlug = async (req, res, next) => {
-  try {
-    const { slug } = req.params;
 
-    const store = await Store.findOne({
-      slug,
-      isActive: true,
-    });
-
-    if (!store) {
-      return res.status(404).json({
-        message: "Store not found",
-      });
-    }
-
-    const products = await Product.find({
-      store: store._id,
-      isPublished: true,
-    });
-
-    res.json({
-      store,
-      products,
-    });
-
-  } catch (error) {
-    next(error); // 🔥 let global error middleware handle it
-  }
-};
 // ================= UPDATE STORE SETTINGS =================
 export const updateStoreSettings = async (req, res) => {
   try {
@@ -174,5 +145,35 @@ export const getStoreRevenue = async (req, res) => {
   } catch (error) {
     console.error("REVENUE ERROR:", error);
     res.status(500).json({ message: "Failed to load revenue" });
+  }
+};
+// ================= PUBLIC: GET STORE BY SLUG =================
+export const getStoreBySlug = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+
+    const store = await Store.findOne({
+      slug,
+      isActive: true,
+    });
+
+    if (!store) {
+      return res.status(404).json({
+        message: "Store not found",
+      });
+    }
+
+    const products = await Product.find({
+      store: store._id,
+      isPublished: true,
+    });
+
+    res.json({
+      store,
+      products,
+    });
+
+  } catch (error) {
+    next(error); // 🔥 let global error middleware handle it
   }
 };
