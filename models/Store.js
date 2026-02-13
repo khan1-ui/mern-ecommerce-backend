@@ -66,11 +66,11 @@ const storeSchema = new mongoose.Schema(
 );
 
 // 🔒 Ensure slug always lowercase
-storeSchema.pre("save", function (next) {
+storeSchema.pre("save", function () {
   if (this.slug) {
     this.slug = this.slug.toLowerCase();
   }
-  next();
+ 
 });
 
 export default mongoose.model("Store", storeSchema);
