@@ -6,7 +6,7 @@ import {
   getAllUsers,
   getAllStores,
   getAllProducts,
-} from "../controllers/superadmin.controller.js";
+} from "../controllers/superAdmin.controller.js";
 
 const router = express.Router();
 
