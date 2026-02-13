@@ -4,8 +4,6 @@ import { authorizeRoles } from "../middlewares/role.middleware.js";
 
 import {
   updateStoreSettings,
-  getStoreStats,
-  getStoreRevenue,
   getStoreBySlug,
 } from "../controllers/storeOwner.controller.js";
 
