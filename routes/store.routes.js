@@ -20,20 +20,6 @@ router.put(
   updateStoreSettings
 );
 
-router.get(
-  "/stats",
-  protect,
-  authorizeRoles("storeOwner"),
-  getStoreStats
-);
-
-router.get(
-  "/revenue",
-  protect,
-  authorizeRoles("storeOwner"),
-  getStoreRevenue
-);
-
 /* ================= PUBLIC ================= */
 
 // ⚠️ Always keep dynamic route at bottom

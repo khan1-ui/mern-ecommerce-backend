@@ -14,7 +14,7 @@ import productRoutes from "./routes/product.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import downloadRoutes from "./routes/download.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
-import storeRoutes from "./routes/store.routes.js";
+
 // ------------------ CONFIG ------------------
 dotenv.config();
 

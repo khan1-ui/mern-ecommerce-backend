@@ -10,6 +10,7 @@ import {
   updateProduct,
   deleteProduct,
 } from "../controllers/product.controller.js";
+import { getStoreStats,getStoreRevenue } from "../controllers/storeOwner.controller.js";
 
 import { importStoreProducts } from "../controllers/storeImport.controller.js";
 
@@ -61,5 +62,17 @@ router.post(
   upload.single("file"),
   importStoreProducts
 );
+router.get(
+  "/stats",
+  protect,
+  authorizeRoles("storeOwner"),
+  getStoreStats
+);
 
+router.get(
+  "/revenue",
+  protect,
+  authorizeRoles("storeOwner"),
+  getStoreRevenue
+);
 export default router;
