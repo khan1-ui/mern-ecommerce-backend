@@ -177,3 +177,29 @@ export const loginUser = async (req, res) => {
 export const getMe = async (req, res) => {
   res.json(req.user);
 };
+export const updateProfile = async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
+  user.name = req.body.name || user.name;
+
+  if (req.body.password) {
+    user.password = req.body.password;
+  }
+
+  await user.save();
+
+  res.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    store: user.store?.slug || null,
+    token: generateToken(user._id),
+  });
+};

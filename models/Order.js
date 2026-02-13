@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
+    // ================= USER & STORE =================
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -16,6 +17,7 @@ const orderSchema = new mongoose.Schema(
       index: true,
     },
 
+    // ================= ORDER ITEMS =================
     items: [
       {
         product: {
@@ -43,37 +45,74 @@ const orderSchema = new mongoose.Schema(
       },
     ],
 
+    // ================= SHIPPING =================
     shippingAddress: {
-      name: { type: String, required: true },
-      phone: { type: String, required: true },
-      address: { type: String, required: true },
-      city: { type: String, required: true },
+      name: { type: String },
+      phone: { type: String },
+      address: { type: String },
+      city: { type: String },
     },
 
+    // ================= AMOUNT =================
     totalAmount: {
       type: Number,
       required: true,
       min: 0,
     },
 
+    currency: {
+      type: String,
+      default: "usd", // international ready
+    },
+
+    // ================= ORDER STATUS =================
     orderStatus: {
       type: String,
-      enum: ["pending", "shipped", "delivered", "cancelled"],
+      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
 
+    // ================= PAYMENT =================
     paymentMethod: {
       type: String,
-      enum: ["COD"],
+      enum: ["COD", "stripe"],
       default: "COD",
     },
 
     paymentStatus: {
       type: String,
-      enum: ["unpaid", "paid"],
+      enum: ["unpaid", "paid", "failed", "refunded"],
       default: "unpaid",
+      index: true,
     },
 
+    paymentGateway: {
+      type: String, // stripe, sslcommerz etc
+    },
+
+    paymentIntentId: {
+      type: String, // stripe payment intent
+    },
+
+    checkoutSessionId: {
+      type: String, // stripe checkout session
+    },
+
+    paidAt: Date,
+    refundedAt: Date,
+
+    // ================= SAAS COMMISSION =================
+    platformFee: {
+      type: Number,
+      default: 0,
+    },
+
+    storeEarning: {
+      type: Number,
+      default: 0,
+    },
+
+    // ================= INVOICE =================
     invoiceNumber: {
       type: String,
       unique: true,
@@ -85,10 +124,15 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔥 Important compound index for store isolation
-orderSchema.index({ store: 1, createdAt: -1 });
 
-// 🔐 Auto-calc safeguard (optional but recommended)
+
+// 🔥 Compound index for store isolation + fast dashboard
+orderSchema.index({ store: 1, createdAt: -1 });
+orderSchema.index({ store: 1, paymentStatus: 1 });
+
+
+
+// 🔐 Auto-calc safeguard
 orderSchema.pre("save", function (next) {
   const calculatedTotal = this.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -99,5 +143,7 @@ orderSchema.pre("save", function (next) {
 
   next();
 });
+
+
 
 export default mongoose.model("Order", orderSchema);
