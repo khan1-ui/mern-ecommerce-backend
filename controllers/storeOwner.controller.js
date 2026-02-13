@@ -153,3 +153,26 @@ export const getStoreOrders = async (req, res) => {
     });
   }
 };
+export const getStoreRevenue = async (req, res) => {
+  try {
+    const storeId = req.user.store;
+
+    const revenue = await Order.aggregate([
+      { $match: { store: storeId } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$totalPrice" }
+        }
+      }
+    ]);
+
+    res.json({
+      totalRevenue: revenue[0]?.totalRevenue || 0
+    });
+
+  } catch (error) {
+    console.error("REVENUE ERROR:", error);
+    res.status(500).json({ message: "Failed to load revenue" });
+  }
+};

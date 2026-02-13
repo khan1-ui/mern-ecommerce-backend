@@ -5,6 +5,8 @@ import { authorizeRoles } from "../middlewares/role.middleware.js";
 import {
   getStoreBySlug,
   updateStoreSettings,
+  getStoreStats,
+  getStoreRevenue,
 } from "../controllers/storeOwner.controller.js";
 
 const router = express.Router();
@@ -23,5 +25,16 @@ router.put(
   authorizeRoles("storeOwner"),
   updateStoreSettings
 );
-
+router.get(
+  "/stats",
+  protect,
+  authorizeRoles("storeOwner"),
+  getStoreStats
+);
+router.get(
+  "/revenue",
+  protect,
+  authorizeRoles("storeOwner"),
+  getStoreRevenue
+);
 export default router;
