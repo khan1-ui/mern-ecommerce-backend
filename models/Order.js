@@ -133,7 +133,7 @@ orderSchema.index({ store: 1, paymentStatus: 1 });
 
 
 // 🔐 Auto-calc safeguard
-orderSchema.pre("save", function (next) {
+orderSchema.pre("save", function () {
   const calculatedTotal = this.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -141,7 +141,7 @@ orderSchema.pre("save", function (next) {
 
   this.totalAmount = calculatedTotal;
 
-  next();
+ 
 });
 
 
