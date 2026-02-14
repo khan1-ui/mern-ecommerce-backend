@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import Store from "../models/Store.js";
 import slugify from "slugify";
 
 // ================= PUBLIC STORE PRODUCTS =================
