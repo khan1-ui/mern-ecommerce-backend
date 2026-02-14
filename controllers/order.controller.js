@@ -1,7 +1,6 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import { clearCart } from "./cart.controller.js";
-
 import mongoose from "mongoose";
 
 // ================= CREATE ORDER =================
@@ -13,6 +12,7 @@ export const createOrder = async (req, res) => {
     const { items, shippingAddress } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
+      await session.abortTransaction();
       return res.status(400).json({
         message: "No order items",
       });
@@ -20,10 +20,10 @@ export const createOrder = async (req, res) => {
 
     let storeId = null;
     let calculatedTotal = 0;
+    const orderItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.product)
-        .session(session);
+      const product = await Product.findById(item.product).session(session);
 
       if (!product) {
         throw new Error("Product not found");
@@ -36,6 +36,7 @@ export const createOrder = async (req, res) => {
         throw new Error("Multiple store products not allowed");
       }
 
+      // 🔥 Stock validation
       if (product.type === "physical") {
         if (product.stock < item.quantity) {
           throw new Error(
@@ -47,6 +48,14 @@ export const createOrder = async (req, res) => {
         await product.save({ session });
       }
 
+      // 🔥 Build secure order item
+      orderItems.push({
+        product: product._id,
+        name: product.title,
+        price: product.price,
+        quantity: item.quantity,
+      });
+
       calculatedTotal += product.price * item.quantity;
     }
 
@@ -55,10 +64,10 @@ export const createOrder = async (req, res) => {
         {
           user: req.user._id,
           store: storeId,
-          items,
+          items: orderItems, // ✅ secure items
           shippingAddress,
           totalAmount: calculatedTotal,
-          paymentStatus: "paid",
+          paymentStatus: "paid", // later stripe dynamic
           orderStatus: "pending",
         },
       ],
@@ -66,89 +75,20 @@ export const createOrder = async (req, res) => {
     );
 
     await session.commitTransaction();
+
+    // 🔥 Clear cart after successful commit
     await clearCart(req.user._id);
 
-
-    res.status(201).json(order[0]);
+    return res.status(201).json(order[0]);
 
   } catch (error) {
     await session.abortTransaction();
     console.error("ORDER CREATE ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: error.message || "Order failed",
     });
   } finally {
     session.endSession();
   }
-};
-
-// ================= GET MY ORDERS =================
-export const getMyOrders = async (req, res) => {
-  const orders = await Order.find({
-    user: req.user._id,
-  })
-    .populate("items.product", "title price type digitalFile")
-    .sort({ createdAt: -1 });
-
-  res.json(orders);
-};
-
-// ================= STORE OWNER: GET STORE ORDERS =================
-export const getStoreOrders = async (req, res) => {
-  const storeId = req.user.store?._id;
-
-  const orders = await Order.find({
-    store: storeId,
-  })
-    .populate("user", "name email")
-    .sort({ createdAt: -1 });
-
-  res.json(orders);
-};
-
-// ================= UPDATE ORDER STATUS =================
-export const updateOrderStatus = async (req, res) => {
-  try {
-    const storeId = req.user.store?._id;
-
-    const order = await Order.findOne({
-      _id: req.params.id,
-      store: storeId,
-    });
-
-    if (!order) {
-      return res.status(404).json({
-        message: "Order not found",
-      });
-    }
-
-    const { orderStatus } = req.body;
-
-    order.orderStatus = orderStatus;
-    await order.save();
-
-    res.json(order);
-
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to update order",
-    });
-  }
-};
-
-// ================= SUPERADMIN: GET ALL ORDERS =================
-export const getAllOrdersSuperAdmin = async (req, res) => {
-  if (req.user.role !== "superadmin") {
-    return res.status(403).json({
-      message: "Not authorized",
-    });
-  }
-
-  const orders = await Order.find({})
-    .populate("user", "name email")
-    .populate("store", "name slug")
-    .sort({ createdAt: -1 });
-
-  res.json(orders);
 };
