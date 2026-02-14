@@ -1,18 +1,16 @@
 import express from "express";
-import Product from "../models/Product.js"; 
-import {
-  getProductsByStore,
-  getProductBySlug,
-} from "../controllers/product.controller.js";
+import Product from "../models/Product.js";
+import { getProductsByStore,getProductBySlug } from "../controllers/product.controller.js";
 
 const router = express.Router();
-// 🔥 Get all published products (Marketplace)
+
+// 🔥 Marketplace - All published products
 router.get("/", async (req, res) => {
   try {
     const products = await Product.find({
       isPublished: true,
-      store: { $exists: true }
-    });
+      store: { $exists: true },
+    }).populate("store", "name slug");
 
     res.json(products);
   } catch (error) {
@@ -23,16 +21,11 @@ router.get("/", async (req, res) => {
   }
 });
 
-// 🔥 Get products by store
-router.get(
-  "/store/:storeId/products",
-  getProductsByStore
-);
+// 🔥 Get products by storeId (admin use)
+router.get("/store/:storeId/products", getProductsByStore);
 
-// 🔥 Get single product by slug inside store
+// 🔥 NEW: Get single product by storeSlug + productSlug
 router.get(
-  "/store/:storeId/products/:slug",
-  getProductBySlug
-);
+  "/store/:storeSlug/product/:slug",getProductBySlug);
 
 export default router;

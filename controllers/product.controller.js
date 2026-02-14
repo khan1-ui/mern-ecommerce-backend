@@ -20,10 +20,20 @@ export const getProductsByStore = async (req, res) => {
 // ================= GET PRODUCT BY SLUG (STORE SAFE) =================
 export const getProductBySlug = async (req, res) => {
   try {
-    const { storeId, slug } = req.params;
+    const { storeSlug, slug } = req.params;
 
+    // 1️⃣ Find store by slug
+    const store = await Store.findOne({ slug: storeSlug });
+
+    if (!store) {
+      return res.status(404).json({
+        message: "Store not found",
+      });
+    }
+
+    // 2️⃣ Find product inside that store
     const product = await Product.findOne({
-      store: storeId,
+      store: store._id,
       slug,
       isPublished: true,
     });
@@ -35,8 +45,12 @@ export const getProductBySlug = async (req, res) => {
     }
 
     res.json(product);
+
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch product" });
+    console.error("GET PRODUCT ERROR:", error);
+    res.status(500).json({
+      message: "Failed to fetch product",
+    });
   }
 };
 
