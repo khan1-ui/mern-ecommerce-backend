@@ -70,7 +70,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ------------------ API ROUTES ------------------
 
 // 🔐 Authentication
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes); 
 
 // 👑 Super Admin
 app.use("/api/superadmin", superAdminRoutes);

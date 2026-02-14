@@ -9,8 +9,13 @@ import {
   getMyProducts,
   updateProduct,
   deleteProduct,
+  updateOrderStatusByStoreOwner,
 } from "../controllers/product.controller.js";
-import { getStoreStats,getStoreRevenue } from "../controllers/storeOwner.controller.js";
+import { getStoreStats,
+        getStoreRevenue,
+        getMyStoreOrders,
+
+ } from "../controllers/storeOwner.controller.js";
 
 import { importStoreProducts } from "../controllers/storeImport.controller.js";
 
@@ -70,9 +75,24 @@ router.get(
 );
 
 router.get(
-  "/revenue",
+  "/revenue", 
   protect,
   authorizeRoles("storeOwner"),
   getStoreRevenue
 );
 export default router;
+router.get(
+  "/orders",
+  protect,
+  authorizeRoles("storeOwner"),
+  getMyStoreOrders
+);
+
+// 🔥 Update order status
+router.put(
+  "/:orderId/status",
+  protect,
+  authorizeRoles("storeOwner"),
+  updateOrderStatusByStoreOwner
+);
+

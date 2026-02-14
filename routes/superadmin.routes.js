@@ -40,6 +40,6 @@ router.get(
   protect,
   authorizeRoles("superadmin"),
   getAllProducts
-);
+); 
 
 export default router;
