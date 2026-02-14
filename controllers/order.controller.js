@@ -93,18 +93,16 @@ export const createOrder = async (req, res) => {
 
 // ================= GET MY ORDERS =================
 export const getMyOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({
-      user: req.user._id,
-    })
-      .populate("items.product", "title price type digitalFile")
-      .sort({ createdAt: -1 });
+  const orders = await Order.find({
+    user: req.user._id,
+  })
+    .populate("items.product", "title price type digitalFile")
+    .populate("store", "name logo") // 🔥 ADD THIS LINE
+    .sort({ createdAt: -1 });
 
-    return res.json(orders);
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch orders" });
-  }
+  res.json(orders);
 };
+
 
 // ================= STORE OWNER: GET STORE ORDERS =================
 export const getStoreOrders = async (req, res) => {
