@@ -48,7 +48,6 @@ export const createOrder = async (req, res) => {
         await product.save({ session });
       }
 
-      // 🔥 Build secure order item
       orderItems.push({
         product: product._id,
         name: product.title,
@@ -64,10 +63,10 @@ export const createOrder = async (req, res) => {
         {
           user: req.user._id,
           store: storeId,
-          items: orderItems, // ✅ secure items
+          items: orderItems,
           shippingAddress,
           totalAmount: calculatedTotal,
-          paymentStatus: "paid", // later stripe dynamic
+          paymentStatus: "paid",
           orderStatus: "pending",
         },
       ],
@@ -76,7 +75,6 @@ export const createOrder = async (req, res) => {
 
     await session.commitTransaction();
 
-    // 🔥 Clear cart after successful commit
     await clearCart(req.user._id);
 
     return res.status(201).json(order[0]);
@@ -90,5 +88,87 @@ export const createOrder = async (req, res) => {
     });
   } finally {
     session.endSession();
+  }
+};
+
+// ================= GET MY ORDERS =================
+export const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      user: req.user._id,
+    })
+      .populate("items.product", "title price type digitalFile")
+      .sort({ createdAt: -1 });
+
+    return res.json(orders);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch orders" });
+  }
+};
+
+// ================= STORE OWNER: GET STORE ORDERS =================
+export const getStoreOrders = async (req, res) => {
+  try {
+    const storeId = req.user.store?._id;
+
+    const orders = await Order.find({
+      store: storeId,
+    })
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+
+    return res.json(orders);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch store orders" });
+  }
+};
+
+// ================= UPDATE ORDER STATUS =================
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const storeId = req.user.store?._id;
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      store: storeId,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    order.orderStatus = req.body.orderStatus;
+    await order.save();
+
+    return res.json(order);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to update order",
+    });
+  }
+};
+
+// ================= SUPERADMIN: GET ALL ORDERS =================
+export const getAllOrdersSuperAdmin = async (req, res) => {
+  try {
+    if (req.user.role !== "superadmin") {
+      return res.status(403).json({
+        message: "Not authorized",
+      });
+    }
+
+    const orders = await Order.find({})
+      .populate("user", "name email")
+      .populate("store", "name slug")
+      .sort({ createdAt: -1 });
+
+    return res.json(orders);
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to fetch all orders",
+    });
   }
 };
