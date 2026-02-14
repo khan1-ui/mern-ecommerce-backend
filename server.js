@@ -78,7 +78,7 @@ app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/store-owner", storeOwnerRoutes);
 
 // 🛍 Public Products
-app.use("/api/products", productRoutes);
+app.use("/api/products", productRoutes); 
 
 // 📦 Orders
 app.use("/api/orders", orderRoutes);
