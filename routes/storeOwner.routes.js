@@ -14,6 +14,7 @@ import {
 import { getStoreStats,
         getStoreRevenue,
         getMyStoreOrders,
+        updateOrderStatusByStoreOwner,
 
  } from "../controllers/storeOwner.controller.js";
 
