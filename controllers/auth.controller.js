@@ -10,7 +10,13 @@ export const registerUser = async (req, res) => {
   session.startTransaction();
 
   try {
-    let { name, email, password, role, storeName } = req.body;
+      let { name, email, password, role, storeName } = req.body;
+      if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
+
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({
@@ -26,7 +32,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email }).session(session);
     if (userExists) {
       return res.status(400).json({
         message: "Email already exists",
