@@ -6,34 +6,37 @@ import mongoose from "mongoose";
 
 // ================= REGISTER =================
 export const registerUser = async (req, res) => {
+  let { name, email, password, role = "customer", storeName } = req.body;
+
+  // 🔒 Basic validation first (before transaction)
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      message: "All required fields must be filled",
+    });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({
+      message: "Password must be at least 6 characters",
+    });
+  }
+
+  email = email.toLowerCase().trim();
+
+  if (role === "superadmin") {
+    return res.status(403).json({
+      message: "Not allowed",
+    });
+  }
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-      let { name, email, password, role, storeName } = req.body;
-      if (password.length < 6) {
-      return res.status(400).json({
-        message: "Password must be at least 6 characters",
-      });
-    }
-
-
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({
-        message: "All required fields must be filled",
-      });
-    }
-
-    email = email.toLowerCase().trim();
-
-    if (role === "superadmin") {
-      return res.status(403).json({
-        message: "Not allowed",
-      });
-    }
-
     const userExists = await User.findOne({ email }).session(session);
+
     if (userExists) {
+      await session.abortTransaction();
       return res.status(400).json({
         message: "Email already exists",
       });
@@ -60,6 +63,7 @@ export const registerUser = async (req, res) => {
     // ================= STORE OWNER =================
     if (role === "storeOwner") {
       if (!storeName) {
+        await session.abortTransaction();
         return res.status(400).json({
           message: "Store name is required",
         });
@@ -78,7 +82,7 @@ export const registerUser = async (req, res) => {
       let slug = baseSlug;
       let counter = 1;
 
-      while (await Store.findOne({ slug })) {
+      while (await Store.findOne({ slug }).session(session)) {
         slug = `${baseSlug}-${counter++}`;
       }
 
@@ -118,7 +122,7 @@ export const registerUser = async (req, res) => {
     await session.abortTransaction();
     console.error("REGISTER ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Registration failed",
     });
   } finally {
@@ -139,8 +143,7 @@ export const loginUser = async (req, res) => {
 
     email = email.toLowerCase().trim();
 
-    const user = await User.findOne({ email })
-      .populate("store");
+    const user = await User.findOne({ email }).populate("store");
 
     if (!user) {
       return res.status(401).json({
@@ -183,6 +186,8 @@ export const loginUser = async (req, res) => {
 export const getMe = async (req, res) => {
   res.json(req.user);
 };
+
+// ================= UPDATE PROFILE =================
 export const updateProfile = async (req, res) => {
   const user = await User.findById(req.user._id);
 
@@ -195,6 +200,11 @@ export const updateProfile = async (req, res) => {
   user.name = req.body.name || user.name;
 
   if (req.body.password) {
+    if (req.body.password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
     user.password = req.body.password;
   }
 
