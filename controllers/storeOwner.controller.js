@@ -8,15 +8,31 @@ export const getStoreStats = async (req, res) => {
     const storeId = req.user.store?._id;
 
     if (!storeId) {
-      return res.status(400).json({
-        message: "No store attached to this user",
+      return res.json({
+        storeExists: false,
+        usersCount: 0,
+        products: { total: 0, digital: 0, physical: 0 },
+        orders: { total: 0, paid: 0, shipped: 0, delivered: 0 },
+        revenue: 0,
       });
     }
 
+    // 🔥 Products
     const totalProducts = await Product.countDocuments({
       store: storeId,
     });
 
+    const digitalProducts = await Product.countDocuments({
+      store: storeId,
+      type: "digital",
+    });
+
+    const physicalProducts = await Product.countDocuments({
+      store: storeId,
+      type: "physical",
+    });
+
+    // 🔥 Orders
     const totalOrders = await Order.countDocuments({
       store: storeId,
     });
@@ -26,6 +42,17 @@ export const getStoreStats = async (req, res) => {
       paymentStatus: "paid",
     });
 
+    const shippedOrders = await Order.countDocuments({
+      store: storeId,
+      orderStatus: "shipped",
+    });
+
+    const deliveredOrders = await Order.countDocuments({
+      store: storeId,
+      orderStatus: "delivered",
+    });
+
+    // 🔥 Revenue
     const revenueData = await Order.aggregate([
       {
         $match: {
@@ -47,10 +74,20 @@ export const getStoreStats = async (req, res) => {
         : 0;
 
     res.json({
-      totalProducts,
-      totalOrders,
-      paidOrders,
-      totalRevenue,
+      storeExists: true,
+      usersCount: 0,
+      products: {
+        total: totalProducts,
+        digital: digitalProducts,
+        physical: physicalProducts,
+      },
+      orders: {
+        total: totalOrders,
+        paid: paidOrders,
+        shipped: shippedOrders,
+        delivered: deliveredOrders,
+      },
+      revenue: totalRevenue,
     });
 
   } catch (error) {
@@ -60,6 +97,7 @@ export const getStoreStats = async (req, res) => {
     });
   }
 };
+
 
 // ================= UPDATE STORE SETTINGS =================
 export const updateStoreSettings = async (req, res) => {
