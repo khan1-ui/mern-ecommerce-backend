@@ -68,11 +68,11 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ store: 1, slug: 1 }, { unique: true });
 
 // 🔐 Prevent digital product having stock
-productSchema.pre("save", function (next) {
+productSchema.pre("save", function () {
   if (this.type === "digital") {
     this.stock = null;
   }
-  next();
+  
 });
 
 export default mongoose.model("Product", productSchema);
