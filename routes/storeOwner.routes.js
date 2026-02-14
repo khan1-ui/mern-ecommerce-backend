@@ -13,7 +13,9 @@ import {
 import { getStoreStats,
         getStoreRevenue, 
         getMyStoreOrders,
-        updateOrderStatusByStoreOwner,       
+        updateOrderStatusByStoreOwner,
+        updateStoreSettings,
+        getStoreBySlug,       
         } from "../controllers/storeOwner.controller.js";
 
 import { importStoreProducts } from "../controllers/storeImport.controller.js";
@@ -94,4 +96,11 @@ router.put(
   authorizeRoles("storeOwner"),
   updateOrderStatusByStoreOwner
 );
-
+ router.put(
+  "/settings",
+  protect, 
+  authorizeRoles("storeOwner"),
+  updateStoreSettings
+);
+// ⚠️ Always keep dynamic route at bottom
+router.get("/store/:slug", getStoreBySlug);
