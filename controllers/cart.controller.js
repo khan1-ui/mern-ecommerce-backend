@@ -41,16 +41,15 @@ export const addToCart = async (req, res) => {
     }
 
     await cart.save();
-
-const updatedCart = await Cart.findOne({
-  user: req.user._id,
-}).populate("items.product");
-
-res.json(updatedCart);
   }
 
-  res.json(cart);
+  const updatedCart = await Cart.findOne({
+    user: req.user._id,
+  }).populate("items.product");
+
+  return res.json(updatedCart);
 };
+
 
 // REMOVE ITEM
 export const removeFromCart = async (req, res) => {
@@ -60,16 +59,15 @@ export const removeFromCart = async (req, res) => {
     (item) => item.product.toString() !== req.params.productId
   );
 
- await cart.save();
+  await cart.save();
 
-const updatedCart = await Cart.findOne({
-  user: req.user._id,
-}).populate("items.product");
+  const updatedCart = await Cart.findOne({
+    user: req.user._id,
+  }).populate("items.product");
 
-res.json(updatedCart);
-
-  res.json(cart);
+  return res.json(updatedCart);
 };
+
 
 // CLEAR CART (After Order)
 export const clearCart = async (userId) => {
