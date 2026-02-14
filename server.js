@@ -14,6 +14,7 @@ import productRoutes from "./routes/product.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import downloadRoutes from "./routes/download.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
+import cartRoutes from "./routes/cart.routes.js"
 // ------------------ CONFIG ------------------
 dotenv.config();
 
@@ -82,6 +83,7 @@ app.use("/api/products", productRoutes);
 
 // 📦 Orders
 app.use("/api/orders", orderRoutes);
+app.use("/api/cart", cartRoutes);
 
 // 📄 Downloads & Invoice
 app.use("/api/download", downloadRoutes);

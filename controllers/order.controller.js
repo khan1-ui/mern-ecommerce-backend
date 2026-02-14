@@ -1,5 +1,7 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import { clearCart } from "./cart.controller.js";
+
 import mongoose from "mongoose";
 
 // ================= CREATE ORDER =================
@@ -64,6 +66,8 @@ export const createOrder = async (req, res) => {
     );
 
     await session.commitTransaction();
+    await clearCart(req.user._id);
+
 
     res.status(201).json(order[0]);
 
