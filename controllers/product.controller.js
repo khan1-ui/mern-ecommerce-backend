@@ -1,5 +1,4 @@
 import Product from "../models/Product.js";
-import Order from "../models/Order.js";
 import slugify from "slugify";
 
 // ================= PUBLIC STORE PRODUCTS =================
@@ -17,97 +16,7 @@ export const getProductsByStore = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch products" });
   }
 };
-/**
- * 🔥 GET MY STORE ORDERS
- * Multi-tenant safe
- */
-export const getMyStoreOrders = async (req, res) => {
-  try {
-    // 1️⃣ Find store owned by this user
-    const store = await Store.findOne({ owner: req.user._id });
 
-    if (!store) {
-      return res.status(404).json({
-        message: "Store not found for this owner",
-      });
-    }
-
-    // 2️⃣ Get orders only for this store
-    const orders = await Order.find({ store: store._id })
-      .populate("user", "name email")
-      .sort({ createdAt: -1 });
-
-    res.json(orders);
-  } catch (error) {
-    console.error("GET STORE ORDERS ERROR:", error);
-    res.status(500).json({
-      message: "Failed to fetch orders",
-    });
-  }
-};
-/**
- * 🔥 UPDATE ORDER STATUS (StoreOwner Only)
- */
-export const updateOrderStatusByStoreOwner = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { orderStatus } = req.body;
-
-    // Allowed statuses
-    const allowedStatuses = [
-      "pending",
-      "paid",
-      "shipped",
-      "delivered",
-      "cancelled",
-    ];
-
-    if (!allowedStatuses.includes(orderStatus)) {
-      return res.status(400).json({
-        message: "Invalid order status",
-      });
-    }
-
-    // 1️⃣ Find store
-    const store = await Store.findOne({ owner: req.user._id });
-
-    if (!store) {
-      return res.status(404).json({
-        message: "Store not found",
-      });
-    }
-
-    // 2️⃣ Find order and verify ownership
-    const order = await Order.findById(orderId);
-
-    if (!order) {
-      return res.status(404).json({
-        message: "Order not found",
-      });
-    }
-
-    if (order.store.toString() !== store._id.toString()) {
-      return res.status(403).json({
-        message: "Not authorized to update this order",
-      });
-    }
-
-    // 3️⃣ Update status
-    order.orderStatus = orderStatus;
-    await order.save();
-
-    res.json({
-      message: "Order status updated successfully",
-      order,
-    });
-
-  } catch (error) {
-    console.error("UPDATE ORDER STATUS ERROR:", error);
-    res.status(500).json({
-      message: "Failed to update order status",
-    });
-  }
-};
 // ================= GET PRODUCT BY SLUG (STORE SAFE) =================
 export const getProductBySlug = async (req, res) => {
   try {

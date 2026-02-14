@@ -9,11 +9,11 @@ import {
   getMyProducts,
   updateProduct,
   deleteProduct,
-  getMyStoreOrders,
-  updateOrderStatusByStoreOwner,
 } from "../controllers/product.controller.js";
 import { getStoreStats,
-        getStoreRevenue,        
+        getStoreRevenue, 
+        getMyStoreOrders,
+        updateOrderStatusByStoreOwner,       
         } from "../controllers/storeOwner.controller.js";
 
 import { importStoreProducts } from "../controllers/storeImport.controller.js";
