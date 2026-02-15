@@ -9,7 +9,7 @@ export const createOrder = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { items, shippingAddress } = req.body;
+    const { items, shippingAddress, paymentMethod } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       await session.abortTransaction();
@@ -29,14 +29,19 @@ export const createOrder = async (req, res) => {
         throw new Error("Product not found");
       }
 
-      // 🔥 Enforce single store per order
+      // 🔥 Enforce single store
       if (!storeId) {
         storeId = product.store.toString();
       } else if (storeId !== product.store.toString()) {
         throw new Error("Multiple store products not allowed");
       }
 
-      // 🔥 Stock validation
+      // 🔥 Validate quantity
+      if (item.quantity <= 0) {
+        throw new Error("Invalid quantity");
+      }
+
+      // 🔥 Stock check (physical only)
       if (product.type === "physical") {
         if (product.stock < item.quantity) {
           throw new Error(
@@ -58,6 +63,12 @@ export const createOrder = async (req, res) => {
       calculatedTotal += product.price * item.quantity;
     }
 
+    // 🔥 Payment Logic
+    const finalPaymentMethod = paymentMethod || "cod";
+
+    const paymentStatus =
+      finalPaymentMethod === "cod" ? "pending" : "unpaid";
+
     const order = await Order.create(
       [
         {
@@ -66,48 +77,66 @@ export const createOrder = async (req, res) => {
           items: orderItems,
           shippingAddress,
           totalAmount: calculatedTotal,
-          paymentStatus: "paid",
-          orderStatus: "pending",
+          paymentMethod: finalPaymentMethod,
+          paymentStatus,
+          orderStatus: "processing",
         },
       ],
       { session }
     );
 
     await session.commitTransaction();
+    session.endSession();
 
+    // Clear cart after successful transaction
     await clearCart(req.user._id);
 
     return res.status(201).json(order[0]);
 
   } catch (error) {
     await session.abortTransaction();
+    session.endSession();
+
     console.error("ORDER CREATE ERROR:", error);
 
     return res.status(500).json({
       message: error.message || "Order failed",
     });
-  } finally {
-    session.endSession();
   }
 };
 
+
 // ================= GET MY ORDERS =================
 export const getMyOrders = async (req, res) => {
-  const orders = await Order.find({
-    user: req.user._id,
-  })
-    .populate("items.product", "title price type digitalFile")
-    .populate("store", "name logo") // 🔥 ADD THIS LINE
-    .sort({ createdAt: -1 });
+  try {
+    const orders = await Order.find({
+      user: req.user._id,
+    })
+      .populate("items.product", "title price type digitalFile")
+      .populate("store", "name logo slug")
+      .sort({ createdAt: -1 });
 
-  res.json(orders);
+    return res.json(orders);
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to fetch orders",
+    });
+  }
 };
+
+
 
 
 // ================= STORE OWNER: GET STORE ORDERS =================
 export const getStoreOrders = async (req, res) => {
   try {
     const storeId = req.user.store?._id;
+
+    if (!storeId) {
+      return res.status(403).json({
+        message: "No store assigned",
+      });
+    }
 
     const orders = await Order.find({
       store: storeId,
@@ -117,9 +146,12 @@ export const getStoreOrders = async (req, res) => {
 
     return res.json(orders);
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch store orders" });
+    return res.status(500).json({
+      message: "Failed to fetch store orders",
+    });
   }
 };
+
 
 // ================= UPDATE ORDER STATUS =================
 export const updateOrderStatus = async (req, res) => {
@@ -137,7 +169,7 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    order.orderStatus = req.body.orderStatus;
+    order.orderStatus = req.body.orderStatus || order.orderStatus;
     await order.save();
 
     return res.json(order);
@@ -163,7 +195,6 @@ export const getAllOrdersSuperAdmin = async (req, res) => {
       .sort({ createdAt: -1 });
 
     return res.json(orders);
-
   } catch (error) {
     return res.status(500).json({
       message: "Failed to fetch all orders",
