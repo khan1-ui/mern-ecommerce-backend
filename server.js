@@ -14,6 +14,7 @@ import productRoutes from "./routes/product.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import downloadRoutes from "./routes/download.routes.js";
 import invoiceRoutes from "./routes/invoice.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 import cartRoutes from "./routes/cart.routes.js"
 // ------------------ CONFIG ------------------
 dotenv.config();
@@ -51,7 +52,11 @@ app.use(
     credentials: true,
   })
 );
-
+app.post(
+  "/api/payment/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res, next) => next()
+);
 // ------------------ BODY PARSER ------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -88,6 +93,7 @@ app.use("/api/cart", cartRoutes);
 // 📄 Downloads & Invoice
 app.use("/api/download", downloadRoutes);
 app.use("/api/invoice", invoiceRoutes);
+app.use("/api/payment", paymentRoutes);
 
 
 // ------------------ ROOT ------------------
